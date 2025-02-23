@@ -1,0 +1,123 @@
+以下是 **Star-CCM+ 中创建动态冰层（基于离散元法 DEM）的具体操作步骤**，按界面点击和设置顺序详细说明：
+
+---
+
+### **1. 新建仿真与几何**
+1. **新建仿真**：
+   - 打开 Star-CCM+，点击菜单栏 `File > New Simulation`，创建一个新仿真。
+   - 右键点击模型树中的 `Geometry > 3D-CAD Models`，选择 `New 3D-CAD Model`，命名为 `Dynamic_Ice`。
+
+2. **创建流体域**：
+   - 在 3D-CAD 模块中，点击 `Tools > Block`，创建一个长方体流体域（如 200m×100m×50m）。
+   - 调整位置：右键点击长方体，选择 `Transform`，设置位置（如中心点坐标 (0,0,0)）。
+
+---
+
+### **2. 启用物理模型**
+1. **启用基础物理模型**：
+   - 在模型树中，右键点击 `Continua > Physics 1 > Models`，选择以下模型：
+     - **Fluid**（流体流动）
+     - **Transient**（瞬态求解器）
+     - **Multiphase > Volume of Fluid (VOF)**（多相流模型）
+     - **Turbulence > k-Omega SST**（湍流模型）
+
+2. **启用离散元法 (DEM)**：
+   - 右键点击 `Continua > Physics 1 > Models`，选择 **Discrete Element Model (DEM)**。
+   - 在 `DEM` 节点下，右键点击 `Particle Interaction`，选择 `Hertz-Mindlin Contact Model`。
+
+---
+
+### **3. 定义冰颗粒属性**
+1. **创建冰材料**：
+   - 右键点击 `Continua > Physics 1 > Materials`，选择 `New Material`，命名为 `Ice`。
+   - 设置材料属性：
+     - 密度（Density）：`917 kg/m³`
+     - 弹性模量（Young’s Modulus）：`5e9 Pa`
+     - 泊松比（Poisson’s Ratio）：`0.3`
+
+2. **定义颗粒属性**：
+   - 右键点击 `Continua > Physics 1 > DEM`，选择 `New Particle Type`，命名为 `Ice_Particle`。
+   - 设置属性：
+     - 材料（Material）：`Ice`
+     - 直径（Diameter）：`1 m`（可设分布范围，如 0.5-2m）
+     - 摩擦系数（Friction Coefficient）：`0.2`
+
+---
+
+### **4. 生成初始冰层（颗粒填充）**
+1. **创建颗粒生成区域**：
+   - 在 3D-CAD 中，点击 `Tools > Block`，创建一个薄层区域（如 200m×100m×2m），位置在水面（Z=0 到 Z=2m）。
+   - 右键点击该几何体，选择 `Assign to Region`，将其分配到新区域 `Ice_Region`。
+
+2. **设置颗粒注入器**：
+   - 右键点击 `Tools > DEM`，选择 `New Particle Injector`。
+   - 在 `Injector` 属性中：
+     - 位置（Location）：选择 `Ice_Region` 的几何。
+     - 颗粒类型（Particle Type）：`Ice_Particle`
+     - 填充方式：`Volume Fill`（体积填充），覆盖率设为 `80%`。
+
+---
+
+### **5. 设置流体-颗粒耦合**
+1. **启用双向耦合**：
+   - 在 `Continua > Physics 1 > DEM` 下，勾选 `Fluid-Particle Interaction`。
+   - 拖曳力模型选择 `Schiller-Naumann`。
+
+2. **设置流体域边界条件**：
+   - 在 `Regions > Fluid` 的边界（如入口、出口、底部）：
+     - 类型设为 `Pressure Outlet`（静水压力分布）。
+     - 壁面条件：颗粒碰撞设为 `Reflective`（反射）或 `Trap`（捕获）。
+
+---
+
+### **6. 网格划分**
+1. **全局网格设置**：
+   - 右键点击 `Mesh > Models`，启用 `Trimmer`（切割体网格）。
+   - 设置基础网格尺寸：`2 m`。
+
+2. **局部加密**：
+   - 右键点击 `Mesh > Custom Controls`，选择 `Volume Control`。
+   - 框选冰层区域（Z=0 到 Z=2m），设置网格尺寸为 `0.5 m`。
+
+---
+
+### **7. 求解设置**
+1. **时间步长**：
+   - 在 `Solvers > Time Step` 中，设置流体时间步为 `0.05 s`，DEM 子步为 `10`（即 DEM 步长 `0.005 s`）。
+
+2. **输出与监控**：
+   - 右键点击 `Solution > Monitors`，添加 `DEM Particle Count`（统计颗粒数量）。
+   - 设置自动保存：`Solution > Automatic Save`，间隔 `1 s`。
+
+---
+
+### **8. 运行与后处理**
+1. **启动计算**：
+   - 点击工具栏上的绿色播放按钮 `Run`，开始仿真。
+
+2. **可视化动态冰层**：
+   - 在 `Scenes` 中新建场景，勾选 `DEM Particles` 和 `Volume Fraction`（VOF 界面）。
+   - 播放动画：右键点击时间步，选择 `Animate`。
+
+---
+
+### **关键操作截图提示**
+1. **启用 DEM 模型**：
+   - 路径：`Continua > Physics 1 > Models` → 右键勾选 `Discrete Element Model (DEM)`。
+
+2. **颗粒注入器设置**：
+   - 路径：`Tools > DEM` → 右键 `New Particle Injector` → 绑定区域和颗粒类型。
+
+3. **动态网格与耦合**：
+   - 确保 `Fluid-Particle Interaction` 已启用，并在 `DEM` 节点下设置接触模型。
+
+---
+
+### **注意事项**
+1. **计算资源**：DEM 计算需大量内存，建议使用 HPC 并行计算（设置 `Parallel` 分区）。
+2. **颗粒数量控制**：初始填充时减少覆盖率（如 30%）可降低计算量。
+3. **验证步骤**：先运行短时间（如 10s），检查颗粒是否正常运动和耦合。
+
+---
+
+通过以上步骤，您可以在 Star-CCM+ 中快速创建动态冰层，并进一步与船舶、潜艇等运动体耦合，实现复杂场景的冰-水-结构交互仿真。
